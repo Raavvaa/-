@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#071220">
+<meta name="description" content="Волшебная 3D новогодняя ёлка с мерцающими огнями, снегом и анимацией.">
+<title>Christmas Magic · 3D Ёлка</title>
+<style>
+  :root{color-scheme:dark;--gold:#f9da91;--muted:#8ea7b4}
+  *{box-sizing:border-box}
+  html,body{margin:0;width:100%;height:100%;overflow:hidden}
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#050c17;color:#fff;touch-action:pan-y}
+  #scene{position:absolute;inset:0;display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+  #scene:active{cursor:grabbing}
+  .top{position:absolute;top:max(34px,env(safe-area-inset-top));width:100%;text-align:center;pointer-events:none;z-index:1;padding:0 18px}
+  .eyebrow{display:inline-block;color:#c2b898;letter-spacing:.38em;text-transform:uppercase;font-size:10px;font-weight:650}
+  h1{font-family:Georgia,'Times New Roman',serif;font-size:clamp(31px,6vw,51px);font-weight:400;letter-spacing:.005em;margin:13px 0 4px;background:linear-gradient(130deg,#fff9dd,#e8bc69 57%,#fff5c8);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 48px #ffd87a18}
+  .subtitle{font-size:12px;color:#afc0c7;letter-spacing:.09em;margin:0}
+  .bottom{position:absolute;bottom:max(25px,env(safe-area-inset-bottom));width:100%;z-index:2;display:flex;flex-direction:column;align-items:center;gap:13px;padding:0 16px}
+  .tip{font-size:11px;color:#afbcc3;text-align:center;letter-spacing:.02em;pointer-events:none;opacity:.85}
+  .actions{display:flex;justify-content:center;gap:10px}
+  button{border:1px solid #fbd99d47;background:#ffffff0e;color:#eae6de;border-radius:999px;padding:11px 18px;font:500 12px system-ui,-apple-system,Arial,sans-serif;cursor:pointer;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);transition:background .2s,border-color .2s,transform .2s}
+  button:active{transform:scale(.96)}
+  button:hover{background:#fff2; border-color:#ffdaa4ad}
+  button:focus-visible{outline:2px solid #eecb8c;outline-offset:4px}
+  #surprise{color:#f5d7a2}
+  .sparkle{pointer-events:none;position:absolute;z-index:3;font-size:20px;opacity:0;animation:pop 1.1s ease-out forwards}
+  @keyframes pop{0%{opacity:0;transform:translateY(0) scale(.35)}20%{opacity:1}100%{opacity:0;transform:translateY(-95px) scale(1.4)}}
+  @media(max-height:650px){.top{top:15px}.top h1{margin:4px 0;font-size:32px}.bottom{bottom:14px;gap:7px}.tip{display:none}button{padding:8px 14px}}
+  @media(prefers-reduced-motion:reduce){.sparkle{animation-duration:.01s}}
+</style>
+</head>
+<body>
+<canvas id="scene" aria-label="Вращающаяся трёхмерная новогодняя ёлка с мерцающими огнями"></canvas>
+<div class="top">
+  <span class="eyebrow">A little Christmas magic</span>
+  <h1>Merry Christmas</h1>
+  <p class="subtitle">Пусть исполняются мечты ✦</p>
+</div>
+<div class="bottom">
+  <div class="tip">Проведи пальцем по ёлке, чтобы повернуть её</div>
+  <div class="actions">
+    <button id="rotate" type="button" aria-label="Остановить вращение">Ⅱ&nbsp; Остановить</button>
+    <button id="surprise" type="button">✧&nbsp; Волшебство</button>
+  </div>
+</div>
+<noscript>Для просмотра ёлки включите JavaScript в браузере.</noscript>
+<script>
+(() => {
+ 'use strict';
+ const canvas = document.getElementById('scene');
+ const ctx = canvas.getContext('2d', {alpha:false});
+ const rotateButton = document.getElementById('rotate');
+ const magicButton = document.getElementById('surprise');
+ const TAU = Math.PI*2;
+ let seed=2026;
+ const rnd=()=>((seed=(1664525*seed+1013904223)>>>0)/4294967296);
+ const rand=(a,b)=>a+(b-a)*rnd();
+ const needles=[], lights=[], garland=[], snow=[], sky=[], sparks=[];
+ const green=['#153f2b','#1c5131','#1f6537','#26723f','#2d8144','#39924b','#114630'];
+ const ornaments=['#ffe69e','#ffb96b','#ef6866','#eaeafa','#79c9ed','#efb4d6'];
+ for(let i=0;i<3700;i++){
+   const y=rand(.015,.998);
+   const tier=(1-y)*6.7;
+   const jag=0.81+0.19*(tier-Math.floor(tier));
+   const rad=Math.pow(1-y,.76)*jag * Math.sqrt(rand(.03,1));
+   const angle=rand(0,TAU);
+   needles.push({x:Math.cos(angle)*rad,y,z:Math.sin(angle)*rad,c:green[Math.floor(rnd()*green.length)],s:rand(.9,2.25)});
+ }
+ for(let i=0;i<880;i++){
+   const t=i/879,y=.035+.86*t;
+   const rad=1.03*Math.pow(1-y,.77);
+   const angle=TAU*(.6+6.1*t);
+   garland.push({x:Math.cos(angle)*rad,y,z:Math.sin(angle)*rad,c:i%7===0?'#fff0b3':'#d99a49',s:1.25});
+ }
+ for(let i=0;i<145;i++){
+   const y=rand(.05,.91),r=1.01*Math.pow(1-y,.76),a=rand(0,TAU);
+   lights.push({x:Math.cos(a)*r,y,z:Math.sin(a)*r,c:ornaments[Math.floor(rnd()*ornaments.length)],p:rand(0,TAU),s:rand(2.5,4.7)});
+ }
+ for(let i=0;i<130;i++) snow.push({x:rnd(),y:rnd(),r:rand(.55,2.0),speed:rand(.02,.075),phase:rand(0,TAU),layer:rand(.2,1)});
+ for(let i=0;i<140;i++) sky.push({x:rnd(),y:rnd(),r:rand(.3,1.6),p:rand(0,TAU)});
+ let w=0,h=0,dpr=1,centerX=0,baseY=0,treeHeight=0,treeRadius=0,background,angle=0,dragging=false,lastX=0,auto=true,lastTs=0,clock=0;
+ let prefersReduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ if(prefersReduced){auto=false;rotateButton.textContent='▶  Вращать';}
+ function fit(){
+   w=window.innerWidth;h=window.innerHeight;
+   dpr=Math.min(window.devicePixelRatio||1,1.8);
+   canvas.width=Math.round(w*dpr); canvas.height=Math.round(h*dpr);
+   canvas.style.width=w+'px';canvas.style.height=h+'px';
+   ctx.setTransform(dpr,0,0,dpr,0,0);
+   centerX=w/2;
+   const small=h<700;
+   baseY=h*(small?.795:.825);
+   treeHeight=Math.min(h*(small?.59:.595),w*1.64);
+   treeRadius=Math.min(w*.45,treeHeight*.47);
+   background=document.createElement('canvas');background.width=Math.ceil(w*dpr);background.height=Math.ceil(h*dpr);
+   const b=background.getContext('2d');b.setTransform(dpr,0,0,dpr,0,0);
+   const bg=b.createLinearGradient(0,0,0,h);bg.addColorStop(0,'#030813');bg.addColorStop(.51,'#071827');bg.addColorStop(1,'#03151a');b.fillStyle=bg;b.fillRect(0,0,w,h);
+   const glow=b.createRadialGradient(centerX,baseY-treeHeight*.49,8,centerX,baseY-treeHeight*.49,treeHeight*.82);
+   glow.addColorStop(0,'#17413b89');glow.addColorStop(.52,'#0928204c');glow.addColorStop(1,'#07131e00');b.fillStyle=glow;b.fillRect(0,0,w,h);
+   const lower=b.createRadialGradient(centerX,baseY,2,centerX,baseY,w*.69);
+   lower.addColorStop(0,'#124e396e');lower.addColorStop(1,'#04151a00');b.fillStyle=lower;b.fillRect(0,baseY-w*.55,w,w*1.1);
+ }
+ function proj(v,ca,sa){
+   let x=v.x*ca-v.z*sa,z=v.x*sa+v.z*ca;
+   const k=2.8/(2.8+.52*z);
+   return {x:centerX+x*treeRadius*k,y:baseY-v.y*treeHeight*(.96+.04*k),k,z};
+ }
+ const starVertices=(cx,cy,r,angle=0)=>{
+   const arr=[];
+   for(let i=0;i<10;i++){
+     const a=-Math.PI/2+angle+i*Math.PI/5;
+     const rr=i%2===0?r:r*.41;
+     arr.push([cx+Math.cos(a)*rr,cy+Math.sin(a)*rr]);
+   }
+   return arr;
+ };
+ function star(cx,cy,sz){
+   const verts=starVertices(cx,cy,sz);
+   ctx.save();ctx.shadowColor='#ffca62';ctx.shadowBlur=35;
+   ctx.fillStyle='#e8ae4f';ctx.beginPath();verts.forEach((p,i)=>i?ctx.lineTo(...p):ctx.moveTo(...p));ctx.closePath();ctx.fill();
+   ctx.shadowBlur=8;ctx.fillStyle='#fff2bf';
+   const mid=starVertices(cx,cy,sz*.78);
+   ctx.beginPath();mid.forEach((p,i)=>i?ctx.lineTo(...p):ctx.moveTo(...p));ctx.closePath();ctx.fill();
+   ctx.restore();
+ }
+ function burst(){
+   for(let i=0;i<88;i++){
+     const a=rnd()*TAU,v=rand(50,230);
+     sparks.push({x:centerX,y:baseY-treeHeight*.64,vx:Math.cos(a)*v,vy:Math.sin(a)*v-95,l:rand(.8,2),t:0,s:rand(1,3.5),c:ornaments[Math.floor(rnd()*ornaments.length)]});
+   }
+ }
+ function frame(ts){
+   if(!w)fit();
+   const dt=Math.min((ts-lastTs)/1000||.016,.06);lastTs=ts;
+   if(auto)angle+=dt*.36;
+   clock+=dt;
+   ctx.clearRect(0,0,w,h);ctx.drawImage(background,0,0,w,h);
+   // The background sky is deliberately subtle so the tree stays in focus.
+   for(const s of sky){
+     ctx.globalAlpha=(.15+.23*(.5+.5*Math.sin(clock*1.1+s.p)));
+     ctx.fillStyle='#bdcfdd';ctx.beginPath();ctx.arc(s.x*w,s.y*h,s.r,0,TAU);ctx.fill();
+   }
+   ctx.globalAlpha=1;
+   const floor=ctx.createRadialGradient(centerX,baseY+8,10,centerX,baseY+8,treeRadius*1.2);
+   floor.addColorStop(0,'#3b996141');floor.addColorStop(.6,'#1a643123');floor.addColorStop(1,'#11301d00');
+   ctx.fillStyle=floor;ctx.beginPath();ctx.ellipse(centerX,baseY+18,treeRadius*1.2,treeRadius*.22,0,0,TAU);ctx.fill();
+   ctx.fillStyle='#4e2d21';ctx.fillRect(centerX-11,baseY-12,22,42);
+   ctx.fillStyle='#855436';ctx.fillRect(centerX-4,baseY-12,7,42);
+   const ca=Math.cos(angle),sa=Math.sin(angle);
+   const parts=[];
+   for(const n of needles){const p=proj(n,ca,sa);parts.push({x:p.x,y:p.y,z:p.z,s:n.s*p.k,c:n.c,type:0});}
+   for(const n of garland){const p=proj(n,ca,sa);parts.push({x:p.x,y:p.y,z:p.z,s:n.s*p.k,c:n.c,type:1});}
+   for(const n of lights){const p=proj(n,ca,sa);parts.push({x:p.x,y:p.y,z:p.z,s:n.s*p.k,c:n.c,type:2,phase:n.p});}
+   parts.sort((a,b)=>b.z-a.z);
+   for(const p of parts){
+     if(p.type===2){
+       const pulse=.61+.39*(.5+.5*Math.sin(clock*3.3+p.phase));
+       ctx.globalAlpha=pulse;
+       ctx.shadowColor=p.c;ctx.shadowBlur=9*p.s/3;
+       ctx.fillStyle=p.c;ctx.beginPath();ctx.arc(p.x,p.y,p.s,0,TAU);ctx.fill();
+       ctx.shadowBlur=0;ctx.globalAlpha=1;
+       ctx.fillStyle='#fff8dc';ctx.beginPath();ctx.arc(p.x-p.s*.22,p.y-p.s*.26,Math.max(.7,p.s*.26),0,TAU);ctx.fill();
+     } else {
+       ctx.globalAlpha=p.type===1?.92:.83;
+       ctx.fillStyle=p.c;ctx.beginPath();ctx.arc(p.x,p.y,Math.max(.55,p.s),0,TAU);ctx.fill();
+     }
+   }
+   ctx.globalAlpha=1;ctx.shadowBlur=0;
+   const tip=proj({x:0,y:1.034,z:0},ca,sa);
+   star(tip.x,tip.y,Math.max(13,treeRadius*.102)*(1+.045*Math.sin(clock*2)));
+   // Falling snow passes in front of the tree.
+   for(const s of snow){
+     s.y+=dt*s.speed;
+     if(s.y>1.025){s.y=-.03;s.x=rnd();}
+     const px=s.x*w+Math.sin(clock*.5+s.phase)*7*s.layer;
+     ctx.globalAlpha=.15+s.layer*.53;
+     ctx.fillStyle='#daeef7';ctx.beginPath();ctx.arc(px,s.y*h,s.r,0,TAU);ctx.fill();
+   }
+   ctx.globalAlpha=1;
+   for(let i=sparks.length-1;i>=0;i--){
+     const s=sparks[i];s.t+=dt;s.x+=s.vx*dt;s.y+=s.vy*dt;s.vy+=82*dt;
+     ctx.globalAlpha=Math.max(0,1-s.t/s.l);ctx.fillStyle=s.c;ctx.beginPath();ctx.arc(s.x,s.y,s.s,0,TAU);ctx.fill();
+     if(s.t>s.l)sparks.splice(i,1);
+   }
+   ctx.globalAlpha=1;
+   requestAnimationFrame(frame);
+ }
+ canvas.addEventListener('pointerdown',e=>{dragging=true;lastX=e.clientX;canvas.setPointerCapture(e.pointerId);});
+ canvas.addEventListener('pointermove',e=>{if(!dragging)return;angle+=(e.clientX-lastX)*.009;lastX=e.clientX;});
+ canvas.addEventListener('pointerup',()=>dragging=false);
+ canvas.addEventListener('pointercancel',()=>dragging=false);
+ rotateButton.addEventListener('click',()=>{
+   auto=!auto;
+   rotateButton.textContent=auto?'Ⅱ  Остановить':'▶  Вращать';
+   rotateButton.setAttribute('aria-label',auto?'Остановить вращение':'Включить вращение');
+ });
+ magicButton.addEventListener('click',burst);
+ window.addEventListener('resize',fit,{passive:true});
+ fit();requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
